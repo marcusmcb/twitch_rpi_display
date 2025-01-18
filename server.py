@@ -7,32 +7,22 @@ app = Flask(__name__)
 def display_message():
     message = request.json.get('message', 'Hello, Twitch!')
     print("MESSAGE: ", message)    
-    display_text(message)
-    return "Message displayed", 200  
+    display_text_with_fade(message)
+    return "Message displayed", 200
 
-@app.route('/display_fortune', methods=['POST'])
-def display_fortune():
-    message = request.json.get('message', 'Your fortune awaits!')
-    print("FORTUNE MESSAGE: ", message)
-    # For now, we’re just printing the message.
-    # You can add a display_text(message) or similar functionality later as needed.
-    return "Fortune message received", 200
-
-def display_text(text):
+def display_text_with_fade(text):
     pygame.init()
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)  # Fullscreen mode
     pygame.display.set_caption('Message Display')
     screen_width, screen_height = screen.get_width(), screen.get_height()
 
-    # Split the message into parts based on the format
-    # Expected format: "<username> lucky numbers: <numbers>"
+    # Split the message into parts
     try:
         username_part, numbers_part = text.split(" lucky numbers: ")
         line1 = username_part
         line2 = "lucky numbers:"
         line3 = numbers_part
     except ValueError:
-        # Fallback if the message format is different
         line1 = text
         line2 = ""
         line3 = ""
@@ -46,11 +36,11 @@ def display_text(text):
     max_text_height = screen_height - 2 * margin
     font_size = 100  # Start with a large font size
 
-    # Load the custom font (replace 'Roboto-Regular.ttf' with the actual font path if needed)
+    # Load the custom font
     font_path = 'fonts/Rubik-Regular.ttf'
     font = pygame.font.Font(font_path, font_size)
     
-    # Adjust font size to fit the lines within the screen height
+    # Adjust font size to fit the lines within the screen height and width
     while True:
         # Check if text width and total height fit within the screen with current font size
         text_surfaces = [font.render(line, True, (255, 243, 0)) for line in lines if line]
@@ -61,22 +51,38 @@ def display_text(text):
         font_size -= 1
         font = pygame.font.Font(font_path, font_size)
 
-    # Set background color and position lines vertically centered with equal spacing
-    screen.fill((78, 48, 184))
-    y_offset = (screen_height - text_heights) // 2
-    for i, surface in enumerate(text_surfaces):
-        screen.blit(surface, ((screen_width - surface.get_width()) // 2, y_offset))
-        y_offset += surface.get_height()
-        # Add extra space after line 2 to create an empty line
-        if i == 1:  # This is after rendering line2
-            y_offset += font.get_height() // 2  # Adjust this as needed for more or less space
+    # Fade-in effect
+    for alpha in range(0, 256, 5):  # Adjust the step for fade speed
+        screen.fill((78, 48, 184))  # Fill background on each frame
+        y_offset = (screen_height - text_heights) // 2
+        for i, surface in enumerate(text_surfaces):
+            temp_surface = surface.copy()
+            temp_surface.set_alpha(alpha)  # Set alpha for fade effect
+            screen.blit(temp_surface, ((screen_width - surface.get_width()) // 2, y_offset))
+            y_offset += surface.get_height()
+            if i == 1:  # Add space after line 2 for visual separation
+                y_offset += font.get_height() // 2
+        pygame.display.flip()
+        pygame.time.delay(30)  # Delay between frames for smoothness
 
-    # Update display
-    pygame.display.flip()
+    # Display text at full opacity for a duration
+    pygame.time.delay(3000)
 
-    # Keep the display for a set duration
-    pygame.time.delay(30000)  # Display message for 5 seconds
-    pygame.quit()  # Clear the screen after
+    # Fade-out effect
+    for alpha in range(255, -1, -5):  # Fade out in reverse
+        screen.fill((78, 48, 184))
+        y_offset = (screen_height - text_heights) // 2
+        for i, surface in enumerate(text_surfaces):
+            temp_surface = surface.copy()
+            temp_surface.set_alpha(alpha)
+            screen.blit(temp_surface, ((screen_width - surface.get_width()) // 2, y_offset))
+            y_offset += surface.get_height()
+            if i == 1:
+                y_offset += font.get_height() // 2
+        pygame.display.flip()
+        pygame.time.delay(30)
+
+    pygame.quit()
 
 
 
